@@ -18,22 +18,6 @@
 
 from datetime import datetime, timedelta
 from itertools import combinations
-
-
-class Scheduler:
-    def __init__(self, start_datetime, end_datetime):
-        self.start_datetime = start_datetime
-        self.end_datetime = end_datetime
-        self._execution_groups = None
-        self._tasks = None
-
-    def serialize_tasks(self, obj):
-        self._tasks = map(lambda task: Task(**task), obj)
-
-    def group_tasks_by_timeframe(self, timeframe=timedelta(hours=8)):
-        pass
-
-
 class Task:
     def __init__(self, _id, description, due_date, estimated_time):
         self._id = _id
@@ -45,8 +29,46 @@ class Task:
         return '<status: success>'
         
 class ExecutionGroup:
-    def __init__(self, tasks):
+    def __init__(self, *tasks):
         self.tasks = tasks
     
     def run_all(self):
         return list(map(lambda t: {t._id: t.run()}))
+    
+    def append_task(self, task):
+        self.tasks.append(task)
+
+    @property
+    def task_ids(self):
+        return [t._id for t in self.tasks]
+
+    @property
+    def estimated_execution_time(self):
+        return sum(map(lambda t: t.estimated_time, self.tasks))
+
+class Scheduler:
+    def __init__(self, start_datetime, end_datetime):
+        self.start_datetime = start_datetime
+        self.end_datetime = end_datetime
+        self._execution_groups = None
+        self._tasks = None
+
+    def serialize_tasks(self, obj):
+        self._tasks = map(lambda task: Task(**task), obj)
+
+    def serialize_execution_groups(self, timeframe=timedelta(hours=8)):
+        remaining = self._tasks.copy()
+        for idx, task in enumerate(self._tasks):
+            if len(remaining) == 1:
+                self._execution_groups.append(ExecutionGroup(remaining))
+                break
+            if task._id in [r._id for r in remaining]:
+                group = ExecutionGroup(*task)
+                for comparable_task in tasks[idx+1:]:
+                    if group.estimated_execution_time + comparable_task.estimated_time <= 8:
+                        group.append_task(comparable_task)
+                        # reconstructs the remaining set of tasks, should refactor it
+                        remaining = [i for i in remaining if not (i['id'] in map(lambda x: x['id'], group))]
+                yield from [group]
+
+
