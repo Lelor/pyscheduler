@@ -58,7 +58,7 @@ class ExecutionGroup:
 
     @property
     def estimated_end_time(self):
-        return self.start_datetime - timedelta(hours=self.estimated_execution_time)
+        return self.start_datetime + timedelta(hours=self.estimated_execution_time)
 
 
 class Scheduler:
@@ -77,7 +77,9 @@ class Scheduler:
         for idx, task in enumerate(self._tasks):
             # Saves a little bit of processing on the last iteration, not really necessary
             if len(remaining_tasks) == 1:
-                self._execution_groups.append(ExecutionGroup(self.end_datetime - self.time_leftover, *remaining_tasks))
+                group = ExecutionGroup(self.end_datetime - self.time_leftover, *remaining_tasks)
+                self._execution_groups.append(group)
+                self.time_leftover -= timedelta(hours=group.estimated_execution_time)
                 break
             # Iterating over every task twice to compare the sets
             # TODO: Implement logic to take the timeframe limit in consideration
@@ -101,8 +103,10 @@ if __name__ == '__main__':
     dt_start = datetime.fromisoformat('2019-11-10 09:00:00')
     dt_end = datetime.fromisoformat('2019-11-11 12:00:00')
     sch = Scheduler(dt_start, dt_end)
+
     with open('test.json', 'r') as f:
         example_obj = load(f)
     sch.load_jobs(example_obj)
     print(sch._execution_groups)
+    # print(f'{f"overdue {sch.time_leftover}" if sch.time_leftover < timedelta(hours=0) else f"{sch.time_leftover} leftover"}')
     print(sch.time_leftover)
