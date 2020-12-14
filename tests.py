@@ -40,7 +40,7 @@ class TestSchedulerJsonLoader(TestCase):
         self.assertEqual(result, [[1, 3], [2]])
         self.assertEqual(sch.time_leftover, timedelta(hours=12))
 
-    def test_should_load_tasks_in_order_of_deadline_asc(self):
+    def test_should_load_tasks_sorted_by_deadline_asc(self):
         sch = scheduler.Scheduler(*self.default_interval)
         sch.load_jobs(self.default_jobs)
         result = list(map(lambda t: t._id, sch._tasks))
