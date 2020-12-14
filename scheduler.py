@@ -43,14 +43,15 @@ class ExecutionGroup:
         return f'{[t._id for t in self.tasks]}'
     
     def run_all(self):
-        return list(map(lambda t: {t._id: t.run()}))
+        res = map(lambda t: {t._id: t.run()}, self.tasks)
+        return {k: v for r in res for k, v in r.items()}
     
     def append_task(self, task):
         self.tasks.append(task)
 
     @property
     def task_ids(self):
-        return [t._id for t in self.tasks]
+        return map(lambda t: t._id, self.tasks)
 
     @property
     def estimated_execution_time(self):
@@ -71,6 +72,8 @@ class Scheduler:
 
     def serialize_tasks(self, obj):
         self._tasks = list(map(lambda task: Task(**task), obj))
+        # orders the tasks by the 'due_date" asc
+        self._tasks.sort(key=lambda i: i.due_date)
 
     def serialize_execution_groups(self, timeframe=timedelta(hours=8)):
         remaining_tasks = self._tasks.copy()
@@ -89,7 +92,7 @@ class Scheduler:
                     if group.estimated_execution_time + comparable_task.estimated_time <= 8:
                         group.append_task(comparable_task)
                         # reconstructs the remaining set of tasks, may refactor it later
-                        remaining_tasks = [i for i in remaining_tasks if not (i._id in map(lambda x: x._id, group.tasks))]
+                        remaining_tasks = [i for i in remaining_tasks if not (i._id in group.task_ids)]
                 self._execution_groups.append(group)
                 self.time_leftover -= timedelta(hours=group.estimated_execution_time)
 
@@ -104,7 +107,7 @@ if __name__ == '__main__':
     dt_end = datetime.fromisoformat('2019-11-11 12:00:00')
     sch = Scheduler(dt_start, dt_end)
 
-    with open('test.json', 'r') as f:
+    with open('example.json', 'r') as f:
         example_obj = load(f)
     sch.load_jobs(example_obj)
     print(sch._execution_groups)
